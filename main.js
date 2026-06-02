@@ -88,8 +88,13 @@ function getTimeLeft() {
     if (!gameStarted || gameStartTime === null) {
         return GAME_TIME + bonusTime;
     }
-    let endTime = (GAME_TIME + bonusTime) - (Date.now() - gameStartTime - totalPausedTime) / 1000;
-    return Math.max(0, Math.ceil(endTime));
+    let pausedTime = totalPausedTime;
+    if (gamePaused && pauseStart !== null) {
+        pausedTime += Date.now() - pauseStart;
+    }
+    const elapsed =(Date.now() - gameStartTime - pausedTime) / 1000;
+    return Math.max(0,Math.ceil(GAME_TIME + bonusTime - elapsed)
+    );
 }
 
 function distanceToPlayer(enemy) {
@@ -636,7 +641,7 @@ function drawBullets() {
 function draw() {
     const v = getView();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = "#2d2b2d";
+    ctx.fillStyle = "#3D8D7A";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.setTransform(v.scale, 0, 0, v.scale, v.offsetX, v.offsetY);
     drawRooms();
@@ -816,9 +821,13 @@ document.getElementById("startBtn").addEventListener("click", () => {
 });
 
 document.getElementById("pauseBtn").addEventListener("click", () => {
+    console.log("PAUSE CLICKED");
+    console.log(gameStarted, gamePaused, gameOver);
+
     if (!gamePaused && gameStarted && !gameOver) {
         gamePaused = true;
         pauseStart = Date.now();
+        console.log("GAME PAUSED");
     }
 });
 

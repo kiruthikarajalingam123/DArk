@@ -20,6 +20,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    z-index: 1000
 }
 #sidebar button {
     width: 140px;
