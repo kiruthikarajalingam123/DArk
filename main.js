@@ -25,14 +25,14 @@ let mouseWorldY = 0;
 
 const game = {
     player:{
-    x: -250,
-    y: -250,
-    width: 40,
-    height: 40,
-    speed: 5,
-    health: 100,
-    score: 0,
-    currency : 0
+        x: -250,
+        y: -250,
+        width: 40,
+        height: 40,
+        speed: 5,
+        health: 100,
+        score: 0,
+        currency : 0
     },
     bullets: [],
     enemies: []
@@ -84,15 +84,17 @@ function screenToWorld(x, y) {
     };
 }
 
+//camera is a set of values that determines which part of the world is shown on the canvas.
+
 function getTimeLeft() {
-    if (!gameStarted || gameStartTime === null) {
-        return GAME_TIME + bonusTime;
+    if (!gameStarted || gameStartTime === null) { //When game starts gameStartTime = Date.now()
+        return GAME_TIME + bonusTime;//Here bonus time is zero if no bonus time is taken by player.
     }
-    let pausedTime = totalPausedTime;
-    if (gamePaused && pauseStart !== null) {
-        pausedTime += Date.now() - pauseStart;
+    let pausedTime = totalPausedTime;//creates a new local variable everytime getTimeLeft() runs and sets pausedTime = totalPauedTime
+    if (gamePaused && pauseStart !== null) { //When pause button is clicked, pauseStart = Date.now() which is the number of milliseconds that have been passed since January 1 1970 and gamePaused becomes true.
+        pausedTime += Date.now() - pauseStart;//keeps on increasing as the amount of time passes in pause is increased.
     }
-    const elapsed =(Date.now() - gameStartTime - pausedTime) / 1000;
+    const elapsed =(Date.now() - gameStartTime - pausedTime) / 1000; 
     return Math.max(0,Math.ceil(GAME_TIME + bonusTime - elapsed)
     );
 }
@@ -109,7 +111,7 @@ function buildRooms() {
     const edges = ["top", "bottom", "left", "right"];
     for (let y = 0; y < ROOMS_Y; y++) {
         for (let x = 0; x < ROOMS_X; x++) {
-            const doorEdge = edges[Math.floor(Math.random() * edges.length)];
+            const doorEdge = edges[Math.floor(Math.random() * edges.length)]; //This will return a number between 0 and 1.
             const room = {
                 x: x * (ROOM_SIZE + GAP),
                 y: y * (ROOM_SIZE + GAP),
@@ -204,16 +206,13 @@ function createRoomWalls(room) {
         });
     }
     if (room.doorEdge === "right") {
-
         const rx = room.x + room.width - t;
-
         walls.push({
             x: rx,
             y: room.y,
             width: t,
             height: doorY - room.y
         });
-
         walls.push({
             x: rx,
             y: doorY + DOOR_SIZE,
@@ -242,7 +241,7 @@ function spawnEnemies() {
             const types = ["guard","sentry","hunter"];
             const type =types[Math.floor(Math.random() * types.length)];
             game.enemies.push({
-                x,
+                x, //object property shorthand can be used when the property name and variable name are the same.
                 y,
                 type,
                 state: "patrol",
@@ -255,6 +254,7 @@ function spawnEnemies() {
                         : type === "hunter"
                         ? 2.5
                         : 1.5,
+                // Ternary operator : if elseif and else
                 maxHealth:
                     type === "hunter"
                         ? 150
@@ -263,20 +263,21 @@ function spawnEnemies() {
                     type === "hunter"
                         ? 150
                         : 100,
-                shootCooldown: 60,
-                rotationSpeed: 0.01,
+                shootCooldown: 60, //In frames because I'm decreasing it once every frame. distanceToPlayer returns a value in pixels.
+                rotationSpeed: 0.01, //How fast the enemy turns in radians per second.
                 detectionRange:
                     type === "hunter"
                         ? 350
                         : 250,
-                facingAngle: 0,
-                fov: Math.PI / 3,
+                // This is in pixels
+                facingAngle: 0, //The direction the enemy is currently facing. It's measured in radians.Canvas y increases downwards so math.PI /2 faces downwards.
+                fov: Math.PI / 3, //Field of View : How wide can the enemy see?
                 room,
                 patrolPoints: [
                     { x: x - 60, y },
                     { x: x + 60, y }
                 ],
-                patrolIndex: 0
+                patrolIndex: 0 //Tells the enemy which patrol index its currently moving towards.
             });
         }
     }
@@ -284,10 +285,7 @@ function spawnEnemies() {
 function updateRoomStatus() {
     const room = getCurrentRoom();
     if (!room) return;
-    const enemiesInRoom =
-        game.enemies.filter(
-            enemy => enemy.room === room
-        );
+    const enemiesInRoom = game.enemies.filter(enemy => enemy.room === room);
     if (enemiesInRoom.length === 0) {
         room.cleared = true;
     }
@@ -301,7 +299,7 @@ function moveEnemy(enemy, dx, dy) {
     if (!collidesWithWall(enemy.x, nextY, enemy.width, enemy.height)) {
         enemy.y = nextY;
     }
-}
+} // If we check both together the collision might block the entire movement.
 
 function updatePlayer() {
     const p = game.player;
@@ -312,27 +310,17 @@ function updatePlayer() {
     if (keys["a"]) moveX -= p.speed;
     if (keys["d"]) moveX += p.speed;
     const nextX = p.x + moveX;
-    if (
-        !collidesWithWall(nextX,p.y,p.width,p.height)
-    ) {
+    if ( !collidesWithWall(nextX,p.y,p.width,p.height)) {
         p.x = nextX;
     }
     const nextY = p.y + moveY;
-    if (
-        !collidesWithWall(
-            p.x,
-            nextY,
-            p.width,
-            p.height
-        )
-    ) {
+    if (!collidesWithWall(p.x,nextY,p.width,p.height)) {
         p.y = nextY;
     }
 }
 
 function updatePatrol(enemy) {
-    const target =
-        enemy.patrolPoints[enemy.patrolIndex];
+    const target = enemy.patrolPoints[enemy.patrolIndex];
     const dx = target.x - enemy.x;
     const dy = target.y - enemy.y;
     const distance = Math.hypot(dx, dy);
@@ -643,7 +631,8 @@ function draw() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = "#3D8D7A";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.setTransform(v.scale, 0, 0, v.scale, v.offsetX, v.offsetY);
+    ctx.setTransform(v.scale, 0, 0, v.scale, v.offsetX, v.offsetY); //Transforms and shifts their coordinates to ensure that the player is in the center of view.
+    // a = scale horizontally b = vertical skew c = horizontal skew d = scale vertically e = Translate vertically f = Translate horizontally
     drawRooms();
     drawEnemies();
     drawPlayer();
@@ -756,7 +745,7 @@ function getView() {
         scale,
         offsetX: canvas.width / 2 - p.x * scale,
         offsetY: canvas.height / 2 - p.y * scale
-    };
+    }; // returns an object v = { scale: 1, offsetX: canvas.width / 2 - p.x * scale, offsetY: canvas.height / 2 - p.y * scale }
 }
 
 function canSeePlayer(enemy) {
@@ -788,7 +777,7 @@ window.addEventListener("keyup", e => {
 });
 
 canvas.addEventListener("mousemove", e => {
-    const p = screenToWorld(e.clientX, e.clientY);
+    const p = screenToWorld(e.clientX, e.clientY); //Take's the mouse's position relative to the screen.
     mouseWorldX = p.x;
     mouseWorldY = p.y;
 });
