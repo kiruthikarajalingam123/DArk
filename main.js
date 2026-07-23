@@ -254,7 +254,7 @@ function spawnEnemies() {
                         : type === "hunter"
                         ? 2.5
                         : 1.5,
-                // Ternary operator : if elseif and else
+                // Ternary operator : if elseif and else.Speed is in pixels per frame
                 maxHealth:
                     type === "hunter"
                         ? 150
@@ -264,7 +264,7 @@ function spawnEnemies() {
                         ? 150
                         : 100,
                 shootCooldown: 60, //In frames because I'm decreasing it once every frame. distanceToPlayer returns a value in pixels.
-                rotationSpeed: 0.01, //How fast the enemy turns in radians per second.
+                rotationSpeed: 0.01, //How fast the enemy turns in radians per frame.
                 detectionRange:
                     type === "hunter"
                         ? 350
@@ -323,28 +323,30 @@ function updatePatrol(enemy) {
     const target = enemy.patrolPoints[enemy.patrolIndex];
     const dx = target.x - enemy.x;
     const dy = target.y - enemy.y;
-    const distance = Math.hypot(dx, dy);
+    const distance = Math.hypot(dx, dy); // The enemy is these many pixels away from the player.
     if (distance > 5) {
-        enemy.facingAngle =Math.atan2(dy, dx);
-        moveEnemy(enemy,Math.cos(enemy.facingAngle) * enemy.speed,Math.sin(enemy.facingAngle) * enemy.speed);
+        enemy.facingAngle =Math.atan2(dy, dx); 
+        //gives the direction to the target and makes the enemy turn that way(not rn).Now we move the enemy...
+        moveEnemy(enemy,Math.cos(enemy.facingAngle) * enemy.speed,Math.sin(enemy.facingAngle) * enemy.speed); 
+        // This is a movement of 1 pixel distance. So that's 1 pixel per frame but our speed is x pixels per frame so we multiply each component by x pixels so that root((dx/distance)squared + root((dx/distance)squared) gives x pixels.
+        // Now the total distance it moves per frame is 1 pixel but with speed it becomes x pixels per frame using pythagoras theorem.
+        // if we use moveEnemy(enemy,dx,dy) the enemy would reach  the player in one frame but we want the enemy to pursue the player at a constant speed.
+        // This is the same as moveEnemy(enemy, dx/distance * speed, dy/distance * speed)
     }
     else {
         enemy.patrolIndex++;
-        if (
-            enemy.patrolIndex >=
-            enemy.patrolPoints.length
-        ) {
+        if (enemy.patrolIndex >= enemy.patrolPoints.length) {
             enemy.patrolIndex = 0;
         }
     } 
 }
 
 function chasePlayer(enemy) {
-    const dx = game.player.x - enemy.x;
+    const dx = game.player.x - enemy.x; //This is the order because we want a vector from the enemy to the player.
     const dy = game.player.y - enemy.y;
-    const angle = Math.atan2(dy, dx);
+    const angle = Math.atan2(dy, dx); // (dx,dy) represents sort of a vector from enemy to player. The mathematical def is the angle between the positive x-axis and the vector (x,y).It gives the angle of the vector.
     enemy.facingAngle = angle;
-    moveEnemy(enemy,Math.cos(angle) * enemy.speed,Math.sin(angle) * enemy.speed);
+    moveEnemy(enemy,Math.cos(angle) * enemy.speed,Math.sin(angle) * enemy.speed); 
 }
 
 function updateGuard(enemy) {
@@ -359,7 +361,7 @@ function updateGuard(enemy) {
         if (!canSeePlayer(enemy)) {
             enemy.state = "patrol";
         }
-        enemy.shootCooldown--;
+        enemy.shootCooldown--; //This function gets called about 60 frames per second
         if (enemy.shootCooldown <= 0) {
             enemyShoot(enemy);
             enemy.shootCooldown = 60;
@@ -372,14 +374,14 @@ function updateHunter(enemy) {
         updatePatrol(enemy);
         if (canSeePlayer(enemy) ||playerInEnemyRoom(enemy)) {
             enemy.state = "chase";
-            enemy.chaseTimer = 420;
+            enemy.chaseTimer = 420; //frames 
         }
     }
     else if (enemy.state === "chase") {
         chasePlayer(enemy);
         enemy.chaseTimer--;
         if (canSeePlayer(enemy)) {
-            enemy.chaseTimer = 420;
+            enemy.chaseTimer = 420; //It chases player for 420 frames i.e 7 seconds and as long as player is within its sight the timer keeps resetting.
         }
         enemy.shootCooldown--;
         if (enemy.shootCooldown <= 0) {
@@ -393,7 +395,7 @@ function updateHunter(enemy) {
 }
 
 function updateSentry(enemy) {
-    enemy.facingAngle += enemy.rotationSpeed;
+    enemy.facingAngle += enemy.rotationSpeed; // 0.01 radian is added to the facing angle per frame.
     enemy.shootCooldown--;
     if (canSeePlayer(enemy) ||playerInEnemyRoom(enemy)) {
         if (enemy.shootCooldown <= 0) {
@@ -428,7 +430,7 @@ function enemyShoot(enemy) {
         y: ey,
         radius: 5,
         speed: 6,
-        dx: Math.cos(angle),
+        dx: Math.cos(angle), // this is already stored as dx/distance
         dy: Math.sin(angle),
         enemyBullet: true
     });
@@ -452,8 +454,7 @@ function updateBullets() {
             continue;
         }
         for (const wall of walls) {
-            if (
-                b.x + b.radius > wall.x && b.x - b.radius < wall.x + wall.width && b.y + b.radius > wall.y && b.y - b.radius < wall.y + wall.height) {
+            if (b.x + b.radius > wall.x && b.x - b.radius < wall.x + wall.width && b.y + b.radius > wall.y && b.y - b.radius < wall.y + wall.height) {
                     const overlapX = Math.min(b.x + b.radius - wall.x, wall.x + wall.width - (b.x - b.radius));
                     const overlapY = Math.min(b.y + b.radius - wall.y, wall.y + wall.height - (b.y - b.radius));
                     if (overlapX < overlapY) {
@@ -467,9 +468,9 @@ function updateBullets() {
                     }
                     b.x += b.dx * 2;
                     b.y += b.dy * 2;
-        break;
-    }
-}
+                break;
+            }
+        }
         for (const enemy of game.enemies) {
             if (bulletHitsEnemy(b, enemy)) {
                 enemy.health -= 25;
@@ -563,28 +564,12 @@ function drawEnemies() {
                 ctx.fillStyle = "purple";
         }
         ctx.beginPath();
-        ctx.arc(
-            enemy.x + enemy.width / 2,
-            enemy.y + enemy.height / 2,
-            20,
-            0,
-            Math.PI * 2
-        );
+        ctx.arc(enemy.x + enemy.width / 2,enemy.y + enemy.height / 2,20,0,Math.PI * 2);
         ctx.fill();
         ctx.fillStyle = "black";
-        ctx.fillRect(
-            enemy.x - 10,
-            enemy.y - 20,
-            60,
-            8
-        );
+        ctx.fillRect(enemy.x - 10,enemy.y - 20,60,8);
         ctx.fillStyle = "lime";
-        ctx.fillRect(
-            enemy.x - 10,
-            enemy.y - 20,
-            60 * (enemy.health / enemy.maxHealth),
-            8
-        );
+        ctx.fillRect(enemy.x - 10,enemy.y - 20,60 * (enemy.health / enemy.maxHealth),8);
     }
 }
 
@@ -592,11 +577,7 @@ function drawPlayer() {
     const p = game.player;
     const cx = p.x + p.width / 2;
     const cy = p.y + p.height / 2;
-    const angle =
-        Math.atan2(
-            mouseWorldY - cy,
-            mouseWorldX - cx
-        );
+    const angle = Math.atan2(mouseWorldY - cy,mouseWorldX - cx); //Tells us which direction the player should face.
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(angle);
@@ -636,7 +617,7 @@ function draw() {
     drawRooms();
     drawEnemies();
     drawPlayer();
-    drawBullets();
+    drawBullets();// Everything in the map is drawn keeping player in mind whereas the side controls are drawn with screen coordinates.
     ctx.setTransform(1,0,0,1,0,0);
     ctx.fillStyle = "white";
     ctx.font = "24px Arial"; 
@@ -652,11 +633,7 @@ function draw() {
         ctx.fillStyle = "white";
         ctx.font = "60px Arial";
         const text = (game.player.health <= 0) ? "YOU LOST" : "TIME UP!";
-        ctx.fillText(
-            text,
-            canvas.width / 2 - 140,
-            canvas.height / 2
-        );
+        ctx.fillText(text,canvas.width / 2 - 140,canvas.height / 2);
     }
 }
 
@@ -673,7 +650,7 @@ function update() {
     updateBullets();
     updateRoomStatus();
     if (game.player.health <= 0) {
-        game.player.health = 0;
+        game.player.health = 0; // The health left is less than what can be taken from
         gameOver = true;
     }
 }
@@ -683,7 +660,7 @@ function loop() {
         update();
     }
     draw();
-    requestAnimationFrame(loop);
+    requestAnimationFrame(loop); // this takes the loop function as a callback and enables it to run every frame.
 }
 
 function exitGame() {
@@ -743,7 +720,7 @@ function getView() {
     const scale = 1;
     return {
         scale,
-        offsetX: canvas.width / 2 - p.x * scale,
+        offsetX: canvas.width / 2 - p.x * scale, //The coordinates which will center the player in the middle of the canvas
         offsetY: canvas.height / 2 - p.y * scale
     }; // returns an object v = { scale: 1, offsetX: canvas.width / 2 - p.x * scale, offsetY: canvas.height / 2 - p.y * scale }
 }
@@ -752,16 +729,16 @@ function canSeePlayer(enemy) {
     const p = game.player;
     const dx = p.x - enemy.x;
     const dy = p.y - enemy.y;
-    const distance =
-        Math.hypot(dx, dy);
-    if (distance >enemy.detectionRange) {
+    const distance = Math.hypot(dx, dy);
+    if (distance > enemy.detectionRange) {
         return false;
     }
-    const angleToPlayer = Math.atan2(dy, dx);
+    const angleToPlayer = Math.atan2(dy, dx); // Gives the angle you must rotate fromt the positive x-axis to the vector (x,y).
+    // It always gives the shorter signed rotation.
     let angleDifference = angleToPlayer - enemy.facingAngle;
-    angleDifference = Math.atan2( Math.sin(angleDifference),Math.cos(angleDifference));
+    angleDifference = Math.atan2( Math.sin(angleDifference),Math.cos(angleDifference)); //Converts the angle difference into the smallest possible angle b/w the two directions.
     return (
-        Math.abs(angleDifference) < enemy.fov / 2
+        Math.abs(angleDifference) < enemy.fov / 2 //The field of vision extends on both sides.
     );
 }
 
@@ -776,7 +753,7 @@ window.addEventListener("keyup", e => {
     keys[e.key.toLowerCase()] = false;
 });
 
-canvas.addEventListener("mousemove", e => {
+canvas.addEventListener("mousemove", e => { 
     const p = screenToWorld(e.clientX, e.clientY); //Take's the mouse's position relative to the screen.
     mouseWorldX = p.x;
     mouseWorldY = p.y;
@@ -812,7 +789,6 @@ document.getElementById("startBtn").addEventListener("click", () => {
 document.getElementById("pauseBtn").addEventListener("click", () => {
     console.log("PAUSE CLICKED");
     console.log(gameStarted, gamePaused, gameOver);
-
     if (!gamePaused && gameStarted && !gameOver) {
         gamePaused = true;
         pauseStart = Date.now();
@@ -852,3 +828,4 @@ document.getElementById("restartBtn").addEventListener("click", () => {
 });
 
 
+ 
